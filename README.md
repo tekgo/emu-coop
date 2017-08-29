@@ -1,3 +1,7 @@
+# Mac usage info
+Iup requires x11, fink and gtk+2. Install fink and run "fink install gtk+2"
+
+
 # emu-coop
 
 This directory contains some Lua scripts that, when loaded by a compliant emulator such as snes9x-rr or FCEUX, can synchronize emulator state over the internet (allowing "cooperative" playthroughs of single-player games).
