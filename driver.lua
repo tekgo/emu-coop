@@ -58,8 +58,8 @@ function performTest(record, valueOverride, sizeOverride)
 
 	if record[1] == "test" then
 		local value = valueOverride or memoryRead(record.addr, sizeOverride or record.size)
-		return (not record.gte or value >= record.gte) and
-			   (not record.lte or value <= record.lte)
+		local result = (not record.gte or value >= record.gte) and (not record.lte or value <= record.lte)
+		return result
 	elseif record[1] == "stringtest" then
 		local test = record.value
 		local len = #test
@@ -121,36 +121,30 @@ function GameDriver:childTick()
 			end
 		end
 	end
-end
+end	
 
 function GameDriver:childWake()
 	self:sendTable({"hello", version=version.release, guid=self.spec.guid})
 
-	for k,v in pairs(self.spec.sync) do
-		local syncTable = self.spec.sync -- Assume sync table is not replaced at runtime
-		local baseAddr = k - (k%2)       -- 16-bit aligned equivalent of address
-		local size = v.size or 1
+	local syncTable = self.spec.sync -- Assume sync table is not replaced at runtime
 
-		local function callback(a,b) -- I have no idea what "b" is but snes9x passes it
-			-- So, this is pretty awful: There is a bug in some versions of snes9x-rr where you if you have registered a registerwrite for an even and odd address,
-			-- SOMETIMES (not always) writing to the odd address will trigger the even address's callback instead. So when we get a callback we trigger the underlying
-			-- callback twice, once for each byte in the current word. This does mean caughtWrite() must tolerate spurious extra calls.
-			for offset=0,1 do
-				local checkAddr = baseAddr + offset
-				local record = syncTable[checkAddr]
-				if record then self:caughtWrite(checkAddr, b, record, size) end
-			end
+	local function callback() 
+		for k,v in pairs(self.spec.sync) do
+			local baseAddr = k
+			local size = v.size or 1
+			local record = syncTable[baseAddr]
+			if record then self:caughtWrite(baseAddr, record, size) end
 		end
-
-		memory.registerwrite (k, size, callback)
 	end
+
+	emu.registerafter(callback)
 end
 
 function GameDriver:isRunning()
 	return performTest(self.spec.running)
 end
 
-function GameDriver:caughtWrite(addr, arg2, record, size)
+function GameDriver:caughtWrite(addr, record, size)
 	local running = self.spec.running
 
 	if self:isRunning() then -- TODO: Yes, we got record, but double check

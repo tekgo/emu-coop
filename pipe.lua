@@ -119,11 +119,11 @@ function IrcPipe:handle(s)
 	local cmd, args = splits[1], splits[2]
 
 	if cmd == "PING" then -- On "PING :msg" respond with "PONG :msg"
-		if pipeDebug then print("Handling ping") end
+ 		if pipeDebug then print("Handling ping") end
 
 		self:send("PONG " .. args)
 
-	elseif cmd:sub(1,1) == ":" then -- A message from a server or user
+	elseif cmd:sub(1,1) == ":" or sub(2,2) == ":" then -- A message from a server or user
 		local source = cmd:sub(2)
 		if self.state == IrcState.login then
 			if source == self.data.nick then -- This is the initial mode set from the server, we are logged in
